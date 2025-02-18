@@ -140,7 +140,7 @@ int16_t lwActivate() {
       Serial.print(F("Retrying join in "));
       Serial.print(sleepForSeconds);
       Serial.println(F(" seconds"));
-
+delay(20000);
       gotoSleep(sleepForSeconds);
 
     } // if activateOTAA state
@@ -187,7 +187,7 @@ void setup() {
 
   // build payload byte array
   uint8_t uplinkPayload[3];
-  uplinkPayload[0] = value1;
+  uplinkPayload[0] = 85;
   uplinkPayload[1] = highByte(value2);   // See notes for high/lowByte functions
   uplinkPayload[2] = lowByte(value2);
   
@@ -201,7 +201,7 @@ void setup() {
   // now save session to RTC memory
   uint8_t *persist = node.getBufferSession();
   memcpy(LWsession, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
-  
+  delay(20000);
   // wait until next uplink - observing legal & TTN FUP constraints
   gotoSleep(uplinkIntervalSeconds);
 
