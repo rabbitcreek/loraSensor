@@ -32,8 +32,15 @@ Preferences store;
 
 // LoRaWAN config, credentials & pinmap
 #include "config.h" 
-
+#include <OneWire.h>
+#include <DallasTemperature.h>
 #include <RadioLib.h>
+// GPIO where the DS18B20 is connected to
+const int oneWireBus = D0;     
+
+// Setup a oneWire instance to communicate with any OneWire devices
+OneWire oneWire(oneWireBus);
+DallasTemperature sensors(&oneWire);
 
 // utilities & vars to support ESP32 deep-sleep. The RTC_DATA_ATTR attribute
 // puts these in to the RTC memory which is preserved during deep-sleep
@@ -61,7 +68,7 @@ void print_wakeup_reason() {
 void gotoSleep(uint32_t seconds) {
   esp_sleep_enable_timer_wakeup(seconds * 1000UL * 1000UL); // function uses uS
   Serial.println(F("Sleeping\n"));
-  Serial.flush();
+  //Serial.flush();
 
   esp_deep_sleep_start();
 
@@ -140,7 +147,7 @@ int16_t lwActivate() {
       Serial.print(F("Retrying join in "));
       Serial.print(sleepForSeconds);
       Serial.println(F(" seconds"));
-delay(20000);
+delay(30000);
       gotoSleep(sleepForSeconds);
 
     } // if activateOTAA state
@@ -161,11 +168,17 @@ delay(20000);
 // setup & execute all device functions ...
 void setup() {
   Serial.begin(115200);
-  while (!Serial);  							// wait for serial to be initalised
+  //while (!Serial);  							// wait for serial to be initalised
   delay(2000);  									// give time to switch to the serial monitor
+  pinMode(D3, OUTPUT);
+  digitalWrite(D3, HIGH);
   Serial.println(F("\nSetup"));
+   pinMode(D2, OUTPUT);
+  //set the resolution to 12 bits (0-4096)
+  analogReadResolution(12);
+  digitalWrite(D2, HIGH);
   print_wakeup_reason();
-
+  sensors.begin();
   int16_t state = 0;  						// return value for calls to RadioLib
 
   // setup the radio based on the pinmap (connections) in config.h
@@ -183,11 +196,23 @@ void setup() {
   // this is the place to gather the sensor inputs
   // instead of reading any real sensor, we just generate some random numbers as example
   uint8_t value1 = radio.random(100);
-  uint16_t value2 = radio.random(2000);
-
+  
+  int analogValue = analogRead(D1);
+  uint16_t value2 = analogValue;
+  
+  // print out the values you read:
+  Serial.printf("ADC analog value = %d\n",analogValue);
+  sensors.requestTemperatures(); 
+  float temperatureC = sensors.getTempCByIndex(0);
+  float temperatureF = sensors.getTempFByIndex(0);
+  Serial.print(temperatureC);
+  Serial.println("ºC");
+  Serial.print(temperatureF);
+  Serial.println("ºF");
+  delay(5000);
   // build payload byte array
   uint8_t uplinkPayload[3];
-  uplinkPayload[0] = 85;
+  uplinkPayload[0] = temperatureF;
   uplinkPayload[1] = highByte(value2);   // See notes for high/lowByte functions
   uplinkPayload[2] = lowByte(value2);
   
@@ -202,6 +227,8 @@ void setup() {
   uint8_t *persist = node.getBufferSession();
   memcpy(LWsession, persist, RADIOLIB_LORAWAN_SESSION_BUF_SIZE);
   delay(20000);
+  digitalWrite(D2,LOW);
+  digitalWrite(D3,LOW);
   // wait until next uplink - observing legal & TTN FUP constraints
   gotoSleep(uplinkIntervalSeconds);
 
