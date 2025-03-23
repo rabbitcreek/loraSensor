@@ -230,9 +230,12 @@ void setup() {
 
   // this is the place to gather the sensor inputs
   // instead of reading any real sensor, we just generate some random numbers as example
-  uint8_t value1 = radio.random(100);
-  
-  int analogValue = analogRead(D1);
+  int analogValue = 0;
+  for(int z = 1; z <= 10; z++){
+   analogValue = analogValue + analogRead(D1);
+   delay(50);
+}
+analogValue = analogValue/10;
   uint16_t value2 = analogValue;
   
   // print out the values you read:
